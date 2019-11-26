@@ -28,13 +28,46 @@ pandas dataframe of the selected data
 '''
 def get_2D_data_from_h5(h5_path, part_name, Slice_name):
     with h5py.File(h5_path,'r') as h5:
-        X_Axis = h5[part_name][Slice_name]['X_Axis']
-        Y_Axis = h5[part_name][Slice_name]['Y_Axis']
+        X_Axis = h5[part_name][Slice_name]['X-Axis']
+        Y_Axis = h5[part_name][Slice_name]['Y-Axis']
         Area = h5[part_name][Slice_name]['Area']
+        Intensity = h5[part_name][Slice_name]['Intensity']
 
-        help_arr = np.column_stack((X_Axis, Y_Axis, Area))
-        df = pd.DataFrame(help_arr, columns=['x','y','area'])
+        help_arr = np.column_stack((X_Axis, Y_Axis, Area, Intensity))
+        df = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
         return df
+
+'''
+------------------------------------------------------------------------------
+dock_df_to_zero:
+This function shifts all the x- and y-values in the dataframe, so the smallest
+value is equal to 0. Therefore it is checked whether the minX/minY value is greater
+or smaller than 0 or equal to 0. The whole dataframe is substracted or added the
+minimum value
+
+inputs:
+df = DataFrame of interest
+minX = Minimum x-value
+minY = Minimum y-value
+
+outputs:
+df = DataFrame with smallest x- and y-values equal to 0
+'''
+def dock_df_to_zero(df, minX, minY):
+    if minX >= 0 and minY >=0:
+        df['x'] = df['x'] - minX
+        df['y'] = df['y'] - minY
+    elif minX < 0 and minY <0:
+        df['x'] = df['x'] + abs(minX)
+        df['y'] = df['y'] + abs(minY)
+    elif minX >= 0 and minY <0:
+        df['x'] = df['x'] - minX
+        df['y'] = df['y'] + abs(minY)
+    elif minX < 0 and min >= 0:
+        df['x'] = df['x'] + abs(minX)
+        df['y'] = df['y'] - minY
+    return df
+
 
 
 
@@ -66,7 +99,7 @@ def get_attributes_from_hdf_5 (h5_path, part_name):
 calculate_part_dimensions:
 function that calculates the dimensions of a part using its attributes
 
-inputs:
+inputs:and github tutorial
 h5_path: str of h5 path
 part_name: str of the name of the desired part
 
@@ -92,6 +125,8 @@ def calculate_part_dimensions(h5_path, part_name):
     dict['lengthX'] = abs(maxX-minX)
     dict['lengthY'] = abs(maxY-minY)
     dict['height'] = abs(maxZ-minZ)
+    dict['minX'] = minX
+    dict['minY'] = minY
 
     dict['number_of_layers'] = int(height/layerThickness)
 
@@ -108,7 +143,7 @@ in the part dimensions the number of voxels is rounded up
 
 inputs:
 length_x_part = float or int of maximum x value of part_name
-length_y_part =                         y
+length_y_part =                         yand github tutorial
 voxel_size = int of x and y dimension of voxel
 num_voxel_layers_part = int of number of layers of the part
 num_voxel_layers = int of number of layers per each voxel
@@ -129,15 +164,27 @@ def get_number_voxel (length_x_part, length_y_part, number_of_layers_part, voxel
 -------------------------------------------------------------------------------
 fill_2D_voxel_area:
 This function takes a dataframe with x,y, Intensity and area values as input data and
-iterates over voxel-grid to fill up each grid
+iterates over voxel-grid to fill up each gridand github tutorial
 
 inputs:
 voxel_size = int of voxel x and y dimensions
 num_voxels_x = int of current number of voxel in x-direction
 num_voxels_y =                                   y
 df = Dataframe of data of interest
-filling_method = Zeros (area data of missing data points is set to zero), further methods to come
+filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
+array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
+                    array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
 
+                    with h5py.File(path_voxel_h5, "a") as voxel_hdf:
+                        #creating a voxel with the numbers of voxels in both direction in its name and filling it with data
+                        #if group is already existing don't create a new group
+                        if 'voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z) not in voxel_hdf:
+                            voxel_hdf.create_group('voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)].create_group('slice_{}'.format(num_slice-num_z*num_voxel_layers)) #-num_z*num_slices_vox wegen
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('X-Axis',data = np.repeat(np.arange(0,voxel_size,1),voxel_size))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Y-Axis',data = np.tile(np.arange(0,voxel_size,1),voxel_size))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Area', data = array_area.flatten())
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Intensity', data = array_intensity.flatten())
 output: np array with area values for voxel
 '''
 
