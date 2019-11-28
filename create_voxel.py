@@ -70,10 +70,6 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
             #try:
             df_not_docked = get_2D_data_from_h5_with_dimension_check(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
             df = dock_df_to_zero(df_not_docked, minX_part, minY_part)
-            '''
-            Problem: minX und minY stimmen nicht mit den Werten in den Slices überein
-            -> eventuell muss minX und minY nochmal selbst berechnet werden
-            '''
 
             #except: #an empty dataframe is created which is handled in the way set earlier ('Zeros') etc.
             #    columns = ['x', 'y', 'area', 'intensity']
@@ -137,7 +133,7 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
 
                     print('creating voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
         # y-Achse entspricht horizontal, x-Achse entspricht vertikal
-
+'/home/jan/Documents/CodeTDMStoHDF/Ausgangsdaten/examplerRun.h5'
 
 
 
