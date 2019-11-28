@@ -97,10 +97,8 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
 
 
                     elif mode == 'Area_only':
-#                        print('n_vox_x_init: ' + str(n_vox_x_init))
-#                        print('n_vox_y_init: ' + str(n_vox_y_init))
-
-
+                        print('n_vox_x_init: ' + str(n_vox_x_init))
+                        print('n_vox_y_init: ' + str(n_vox_y_init))
 
                         array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
                         #array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
@@ -133,8 +131,8 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
 
                     print('creating voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
         # y-Achse entspricht horizontal, x-Achse entspricht vertikal
-'/home/jan/Documents/CodeTDMStoHDF/Ausgangsdaten/examplerRun.h5'
 
+    return()
 
 
 

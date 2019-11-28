@@ -296,19 +296,7 @@ num_voxels_x = int of current number of voxel in x-direction
 num_voxels_y =                                   y
 df = Dataframe of data of interest
 filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
-array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
-                    array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
 
-                    with h5py.File(path_voxel_h5, "a") as voxel_hdf:
-                        #creating a voxel with the numbers of voxels in both direction in its name and filling it with data
-                        #if group is already existing don't create a new group
-                        if 'voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z) not in voxel_hdf:
-                            voxel_hdf.create_group('voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
-                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)].create_group('slice_{}'.format(num_slice-num_z*num_voxel_layers)) #-num_z*num_slices_vox wegen
-                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('X-Axis',data = np.repeat(np.arange(0,voxel_size,1),voxel_size))
-                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Y-Axis',data = np.tile(np.arange(0,voxel_size,1),voxel_size))
-                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Area', data = array_area.flatten())
-                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Intensity', data = array_intensity.flatten())
 output: np array with area values for voxel
 '''
 
@@ -317,6 +305,9 @@ def fill_2D_voxel_area (voxel_size, num_voxels_x, num_voxels_y, df, filling_meth
     for i in range(voxel_size*num_voxels_x, voxel_size*(num_voxels_x+1)): #iterating over x
         for j in range(voxel_size*num_voxels_y,voxel_size*(num_voxels_y+1)): #iterating over y
 
+            print('i: '+str(i))
+            print('j: '+str(j))
+            
             if df[(df['x'] == i) & (df['y'] == j)].shape[0] == 1: #here subset of the original dataframe is created an filtrered --> shape[0] returns the number of rows of this df subset
                 #finding the area value for a certain point in the part-data-dataframe and allocating it to a position in the array
                 area_i = df.loc[(df['x'] == i) & (df['y'] == j)]
@@ -366,7 +357,7 @@ def fill_2D_voxel_intensity (voxel_size, num_voxels_x, num_voxels_y, df, filling
                 array_intensity[i-num_voxels_x*voxel_size][j-num_voxels_y*voxel_size] = df[(df['x'] == i) & (df['y'] == j)]['intensity'].max()
 
 
-            elif df[(df['x'] == i) & (df['y'] == j)].shape[0] == 0 and filling_method == 'intensity':
+            elif df[(df['x'] == i) & (df['y'] == j)].shape[0] == 0 and filling_method == 'Zeros':
                 array_intensity[i-num_voxels_x*voxel_size][j-num_voxels_y*voxel_size] = 0
 
             #elif filling_method == 'Mean': #with this method all the missing datapoints are getting filled with the mean of the non-missing datapoints
