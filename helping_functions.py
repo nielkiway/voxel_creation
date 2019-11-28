@@ -3,8 +3,8 @@
 @ author: Jan Klein
 @ date: 20-11-2019
 
-These functions are used as helper functions in create_voxel.py to create a 3D-Voxel-structure of the
-hdf5 data of a certain part
+These functions are used as helper functions in create_voxel.py to create a
+3D-Voxel-structure of the hdf5 data of a certain part
 '''
 import h5py
 import numpy as np
@@ -33,6 +33,75 @@ def get_2D_data_from_h5(h5_path, part_name, Slice_name):
         Area = h5[part_name][Slice_name]['Area']
         Intensity = h5[part_name][Slice_name]['Intensity']
 
+        help_arr = np.column_stack((X_Axis, Y_Axis, Area, Intensity))
+        df = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
+        return df
+
+
+'''
+------------------------------------------------------------------------------
+get_2D_data_from_h5_with_dimension_check:
+This function reads in the hdf5 data like the function get_2D_data_from_h5
+but it also performs a check whether all the dimensions of the value arrays
+in the hdf5 file are equal - if that's not the case, the last values of the arrays
+which exceed the minimal array length are deleted. This process is repeated till
+all the dimensions are equal
+
+inputs:
+h5_path = str of path of the hdf5 of the relevant buildjob
+part_name = str of the name of the part of interest
+Slice_name = str of the slice of interest
+
+outputs:
+pandas dataframe of the selected data with checked Dimensions
+
+'''
+def get_2D_data_from_h5_with_dimension_check(h5_path, part_name, Slice_name):
+    with h5py.File(h5_path,'r') as h5:
+        X_Axis = h5[part_name][Slice_name]['X-Axis']
+        Y_Axis = h5[part_name][Slice_name]['Y-Axis']
+        Area = h5[part_name][Slice_name]['Area']
+        Intensity = h5[part_name][Slice_name]['Intensity']
+
+        X_Axis_size = X_Axis.size
+        Y_Axis_size = Y_Axis.size
+        Area_size = Area.size
+        Intensity_size = Intensity.size
+
+        #if dimensions aren't equal the following code block is entered
+        if not X_Axis_size == Y_Axis_size == Area_size == Intensity_size:
+
+            #determine the lowest value among the different sizes
+            size_arr = np.array([X_Axis_size, Y_Axis_size, Area_size, Intensity_size])
+            min_size = size_arr.min()
+
+            if X_Axis_size != min_size:
+                diff_size_x = X_Axis_size - min_size #calculating the difference between the actual value and the minimum and substracting it from the array
+                X_Axis_new = np.delete(X_Axis, -diff_size_x)
+                X_Axis = X_Axis_new
+                X_Axis_size = X_Axis.size
+
+            if Y_Axis_size != min_size:
+                diff_size_y = Y_Axis_size - min_size
+                Y_Axis_new = np.delete(Y_Axis, -diff_size_y)
+                Y_Axis = Y_Axis_new
+                Y_Axis_size = Y_Axis.size
+
+            if Area_size != min_size:
+                diff_size_area = Area_size - min_size
+                Area_new = np.delete(Area, -diff_size_area)
+                Area = Area_new
+                Area_size = Area.size
+
+            if Intensity_size != min_size:
+                diff_size_intensity = Intensity_size - min_size
+                Intensity_new = np.delete(Intensity, -diff_size_intensity)
+                Intensity = Intensity_new
+                Intensity_size = Intensity.size
+
+
+        #by reducing all the dimensions to the minimum equal dimensions are guaranteed
+        #there is a risk of deleting more than just one datapoint without noticing -> maybe add an alert after more than 5(?) while iterations
         help_arr = np.column_stack((X_Axis, Y_Axis, Area, Intensity))
         df = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
         return df
@@ -69,6 +138,61 @@ def dock_df_to_zero(df, minX, minY):
     return df
 
 
+'''
+-------------------------------------------------------------------------------
+get_true_min_maxX:
+function that goes through all the slices and finds the minimum and maximal
+x-value
+
+input:
+h5_path = str of path to the buildjob hdf5
+part_name = str of name of the part
+max_slice_number = greatest number of slices of the part of interest
+
+output:
+tuple with minimal x-value in position [0] and maximal x-value in position [1]
+'''
+def get_true_min_maxX (h5_path, part_name, max_slice_number):
+
+    minX = []
+    maxX = []
+    for num_slice in range(max_slice_number):
+        with h5py.File(h5_path,'r') as h5:
+            X_Axis = h5[part_name]['Slice'+str("{:05d}".format(num_slice+1))]['X-Axis']
+            x_axis_array = np.array(X_Axis)
+            minX.append(x_axis_array.min())
+            maxX.append(x_axis_array.max())
+    minX_array = np.asarray(minX)
+    maxX_array = np.asarray(maxX)
+    return minX_array.min(), maxX_array.max()
+
+'''
+-------------------------------------------------------------------------------
+get_true_min_maxY:
+function that goes through all the slices and finds the minimum and maximal
+y-value
+
+input:
+h5_path = str of path to the buildjob hdf5
+part_name = str of name of the part
+max_slice_number = greatest number of slices of the part of interest
+
+output:
+tuple with minimal y-value in position [0] and maximal y-value in position [1]
+'''
+def get_true_min_maxY (h5_path, part_name, max_slice_number):
+
+    minY = []
+    maxY = []
+    for num_slice in range(max_slice_number):
+        with h5py.File(h5_path,'r') as h5:
+            Y_Axis = h5[part_name]['Slice'+str("{:05d}".format(num_slice+1))]['Y-Axis']
+            y_axis_array = np.array(Y_Axis)
+            minY.append(y_axis_array.min())
+            maxY.append(y_axis_array.max())
+    minY_array = np.asarray(minY)
+    maxY_array = np.asarray(maxY)
+    return minY_array.min(), maxY_array.max()
 
 
 '''
