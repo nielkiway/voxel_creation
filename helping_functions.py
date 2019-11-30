@@ -10,6 +10,93 @@ import h5py
 import numpy as np
 import math
 import pandas as pd
+import time
+
+'''
+get_2D_data_from_h5_filtered
+'''
+def get_2D_data_from_h5_filtered(h5_path, part_name, Slice_name, mode):
+    #Step 1: getting the data from the h5
+    start_time = time.time()
+    with h5py.File(h5_path,'r') as h5:
+        X_Axis = h5[part_name][Slice_name]['X-Axis']
+        Y_Axis = h5[part_name][Slice_name]['Y-Axis']
+        Area = h5[part_name][Slice_name]['Area']
+        Intensity = h5[part_name][Slice_name]['Intensity']
+
+        X_Axis_size = X_Axis.size
+        Y_Axis_size = Y_Axis.size
+        Area_size = Area.size
+        Intensity_size = Intensity.size
+
+        #if dimensions aren't equal the following code block is entered
+        if not X_Axis_size == Y_Axis_size == Area_size == Intensity_size:
+
+            #determine the lowest value among the different sizes
+            size_arr = np.array([X_Axis_size, Y_Axis_size, Area_size, Intensity_size])
+            min_size = size_arr.min()
+
+            if X_Axis_size != min_size:
+                diff_size_x = X_Axis_size - min_size #calculating the difference between the actual value and the minimum and substracting it from the array
+                X_Axis_new = np.delete(X_Axis, -diff_size_x)
+                X_Axis = X_Axis_new
+                X_Axis_size = X_Axis.size
+
+            if Y_Axis_size != min_size:
+                diff_size_y = Y_Axis_size - min_size
+                Y_Axis_new = np.delete(Y_Axis, -diff_size_y)
+                Y_Axis = Y_Axis_new
+                Y_Axis_size = Y_Axis.size
+
+            if Area_size != min_size:
+                diff_size_area = Area_size - min_size
+                Area_new = np.delete(Area, -diff_size_area)
+                Area = Area_new
+                Area_size = Area.size
+
+            if Intensity_size != min_size:
+                diff_size_intensity = Intensity_size - min_size
+                Intensity_new = np.delete(Intensity, -diff_size_intensity)
+                Intensity = Intensity_new
+                Intensity_size = Intensity.size
+
+
+        #by reducing all the dimensions to the minimum equal dimensions are guaranteed
+        #there is a risk of deleting more than just one datapoint without noticing -> maybe add an alert after more than 5(?) while iterations
+        help_arr = np.column_stack((X_Axis, Y_Axis, Area, Intensity))
+        df_raw = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
+
+    #Step 2: change floats to ints and remove duplicates
+    df_int = df_raw.astype(int).drop_duplicates()
+
+    #remove all rows with 0 for area and intensity
+    df_int = df_int.loc[(df_int['area'] != 0) & (df_int['intensity'] != 0)]
+
+
+    #Step 3: Get a df with all the rows where a certain x,y combination occurs multiple times
+    df_multi_xy = df_int[df_int.duplicated(['x','y'], keep = False)]
+
+    #Step 4: get a new df out of df_multi_xy with x,y and mean/max of area and intensity for all x,y occurences
+    df_compact = pd.DataFrame(columns=['x','y','area','intensity']) #initialize df_compact
+
+    print("vor iterieren %s seconds ---" % (time.time() - start_time))
+    for ind in range (df_multi_xy.shape[0]):
+        if mode == 'mean':
+            area_mean = df_multi_xy.loc[(df_multi_xy['x']== df_multi_xy.iloc[ind]['x']) & (df_multi_xy['y'] == df_multi_xy.iloc[ind]['y'])]['area'].mean().astype(int)
+            intensity_mean = df_multi_xy.loc[(df_multi_xy['x']== df_multi_xy.iloc[ind]['x']) & (df_multi_xy['y'] == df_multi_xy.iloc[ind]['y'])]['intensity'].mean().astype(int)
+            df_compact = df_compact.append({'x': df_multi_xy.iloc[ind]['x'], 'y':df_multi_xy.iloc[ind]['y'], 'area':area_mean , 'intensity':intensity_mean}, ignore_index=True)
+        if mode == 'max':
+            area_max = df_multi_xy.loc[(df_multi_xy['x']== df_multi_xy.iloc[ind]['x']) & (df_multi_xy['y'] == df_multi_xy.iloc[ind]['y'])]['area'].max().astype(int)
+            intensity_max = df_multi_xy.loc[(df_multi_xy['x']== df_multi_xy.iloc[ind]['x']) & (df_multi_xy['y'] == df_multi_xy.iloc[ind]['y'])]['intensity'].max().astype(int)
+            df_compact = df_compact.append({'x': df_multi_xy.iloc[ind]['x'], 'y':df_multi_xy.iloc[ind]['y'], 'area':area_max , 'intensity':intensity_max}, ignore_index=True)
+    df_compact = df_compact.drop_duplicates()
+
+    #Step 5: remove df_multi_xy from df_int and append df_compact
+    df_multi_xy_removed = df_int.drop(df_int[df_int.duplicated(['x','y'], keep = False)].index)
+
+    df_final = df_multi_xy_removed.append(df_compact)
+    print("df creation took %s seconds ---" % (time.time() - start_time))
+    return (df_final)
 
 
 '''
@@ -307,7 +394,7 @@ def fill_2D_voxel_area (voxel_size, num_voxels_x, num_voxels_y, df, filling_meth
 
             print('i: '+str(i))
             print('j: '+str(j))
-            
+
             if df[(df['x'] == i) & (df['y'] == j)].shape[0] == 1: #here subset of the original dataframe is created an filtrered --> shape[0] returns the number of rows of this df subset
                 #finding the area value for a certain point in the part-data-dataframe and allocating it to a position in the array
                 area_i = df.loc[(df['x'] == i) & (df['y'] == j)]
@@ -364,3 +451,34 @@ def fill_2D_voxel_intensity (voxel_size, num_voxels_x, num_voxels_y, df, filling
              #   array_area[i][j] =
 
     return array_intensity
+
+    '''
+    -------------------------------------------------------------------------------
+    fill_2D_voxel_area_v2:
+    Second version of fill_2D_voxel_area
+
+    inputs:
+    voxel_size = int of voxel x and y dimensions
+    num_voxels_x = int of current number of voxel in x-direction
+    num_voxels_y =                                   y
+    df = Dataframe of data of interest
+    filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
+
+    output: np array with area values for voxel
+    '''
+
+def fill_2D_voxel_area_v2 (voxel_size, num_voxels_x, num_voxels_y, df):
+    array_area = np.zeros([voxel_size,voxel_size]) #creating an empty array of dimensions voxel_size*voxel_size
+    for i in range(voxel_size*num_voxels_x, voxel_size*(num_voxels_x+1)): #iterating over x
+        for j in range(voxel_size*num_voxels_y,voxel_size*(num_voxels_y+1)): #iterating over y
+
+            if ((df['x'] == i) & (df['y'] == j)).any(): #here subset of the original dataframe is created an filtrered --> shape[0] returns the number of rows of this df subset
+                #finding the area value for a certain point in the part-data-dataframe and allocating it to a position in the array
+                area_i = df.loc[(df['x'] == i) & (df['y'] == j)]
+                array_area[i-num_voxels_x*voxel_size][j-num_voxels_y*voxel_size] = area_i['area']
+
+            else:
+                array_area[i-num_voxels_x*voxel_size][j-num_voxels_y*voxel_size] = 0
+
+
+        return array_area
