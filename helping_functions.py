@@ -529,4 +529,4 @@ def fill_2D_voxel_area_v2 (voxel_size, num_voxels_x, num_voxels_y, df):
                 array_area[i-num_voxels_x*voxel_size][j-num_voxels_y*voxel_size] = 0
 
 
-        return array_area
+    return array_area
