@@ -124,6 +124,38 @@ def get_2D_data_from_h5(h5_path, part_name, Slice_name):
         df = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
         return df
 
+'''
+------------------------------------------------------------------------------
+dock_df_to_zero:
+This function shifts all the x- and y-values in the dataframe, so the smallest
+value is equal to 0. Therefore it is checked whether the minX/minY value is greater
+or smaller than 0 or equal to 0. The whole dataframe is substracted or added the
+minimum value
+
+inputs:
+df = DataFrame of interest
+minX = Minimum x-value
+minY = Minimum y-value
+
+outputs:
+df = DataFrame with smallest x- and y-values equal to 0
+'''
+def dock_df_to_zero(df, minX, minY):
+    if minX >= 0 and minY >=0:
+        df['x'] = df['x'] - minX
+        df['y'] = df['y'] - minY
+    elif minX < 0 and minY <0:
+        df['x'] = df['x'] + abs(minX)
+        df['y'] = df['y'] + abs(minY)
+    elif minX >= 0 and minY <0:
+        df['x'] = df['x'] - minX
+        df['y'] = df['y'] + abs(minY)
+    elif minX < 0 and min >= 0:
+        df['x'] = df['x'] + abs(minX)
+        df['y'] = df['y'] - minY
+    return df
+
+
 
 '''
 ------------------------------------------------------------------------------
@@ -383,7 +415,23 @@ num_voxels_x = int of current number of voxel in x-direction
 num_voxels_y =                                   y
 df = Dataframe of data of interest
 filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
+<<<<<<< HEAD
 
+=======
+array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
+                    array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
+
+                    with h5py.File(path_voxel_h5, "a") as voxel_hdf:
+                        #creating a voxel with the numbers of voxels in both direction in its name and filling it with data
+                        #if group is already existing don't create a new group
+                        if 'voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z) not in voxel_hdf:
+                            voxel_hdf.create_group('voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)].create_group('slice_{}'.format(num_slice-num_z*num_voxel_layers)) #-num_z*num_slices_vox wegen
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('X-Axis',data = np.repeat(np.arange(0,voxel_size,1),voxel_size))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Y-Axis',data = np.tile(np.arange(0,voxel_size,1),voxel_size))
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Area', data = array_area.flatten())
+                        voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_voxel_layers)].create_dataset('Intensity', data = array_intensity.flatten())
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
 output: np array with area values for voxel
 '''
 

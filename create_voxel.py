@@ -10,7 +10,11 @@ import h5py
 import numpy as np
 import math
 import pandas as pd
+<<<<<<< HEAD
 from helping_functions import calculate_part_dimensions, get_number_voxel, fill_2D_voxel_area, fill_2D_voxel_intensity, get_2D_data_from_h5, dock_df_to_zero, get_true_min_maxX, get_true_min_maxY, get_2D_data_from_h5_with_dimension_check
+=======
+from helping_functions import calculate_part_dimensions, get_number_voxel, fill_2D_voxel_area, fill_2D_voxel_intensity, get_2D_data_from_h5, dock_df_to_zero
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
 
 '''
 path_voxel_h5 = '' #enter the path for the resulting voxel hdf5 here
@@ -20,6 +24,7 @@ voxel_size = 1  #int of x and y dimension of a voxel
 num_voxel_layers = 1#int of number of layers per voxel
 '''
 #Modus: Area+Intensity, Area_only, Intensity_only
+<<<<<<< HEAD
 def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_voxel_layers, mode, max_slice_number_part): #max_slice_number_part can be removed as soon as attribute version is working
     #1. Step: calculating the number of needed voxels
 
@@ -55,6 +60,23 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
     print('num_voxels_y: ' + str(num_voxels_y))
     print('num_voxels_z: ' + str(num_voxels_z))
 
+=======
+def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_voxel_layers, mode):
+    #1. Step: calculating the number of needed voxels
+    dimension_dict = calculate_part_dimensions(path_buildjob_h5, part_name)
+    length_x_part = dimension_dict['lengthX']
+    length_y_part = dimension_dict['lengthY']
+    number_of_layers_part = dimension_dict['number_of_layers']
+    minX_part = dimension_dict['minX']
+    minY_part = dimension_dict['minY']
+
+    num_voxels = get_number_voxel(length_x_part, length_y_part, number_of_layers_part, voxel_size, num_voxel_layers)
+    num_voxels_x = num_voxels[0]
+    num_voxels_y = num_voxels[1]
+    num_voxels_z = num_voxels[2]
+
+    print(num_voxels)
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
     #2. Step: create empty hdf-file for voxel
     voxel_hdf = h5py.File(path_voxel_h5, "w")
     voxel_hdf.close()
@@ -62,6 +84,7 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
     #num_slices_vox = neu num_voxel_layers
 
     for num_z in range(0, num_voxels_z):
+<<<<<<< HEAD
         print('num_z: ' + str(num_z))
 
         for num_slice in range(num_voxel_layers*num_z, num_voxel_layers*(num_z+1)):
@@ -70,6 +93,20 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
             #try:
             df_not_docked = get_2D_data_from_h5_with_dimension_check(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
             df = dock_df_to_zero(df_not_docked, minX_part, minY_part)
+=======
+        print(num_z)
+
+        for num_slice in range(num_voxel_layers*num_z, num_voxel_layers*(num_z+1)):
+            print(num_slice)
+            #here it's checked whether the Slice number is in within the hdf5-file. If yes, the data of the slice is loaded. If not, an empty dataframe is created and processed
+            #try:
+            df_not_docked = get_2D_data_from_h5(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
+            df = dock_df_to_zero(df_not_docked, minX_part, minY_part)
+            '''
+            Problem: minX und minY stimmen nicht mit den Werten in den Slices überein
+            -> eventuell muss minX und minY nochmal selbst berechnet werden
+            '''
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
 
             #except: #an empty dataframe is created which is handled in the way set earlier ('Zeros') etc.
             #    columns = ['x', 'y', 'area', 'intensity']
@@ -77,9 +114,14 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
 
             print(df)
             for n_vox_y_init in range(num_voxels_y): #iterating over number of voxels in y-direction
+<<<<<<< HEAD
                 #print('n_vox_y_init: ' + str(n_vox_y_init))
                 for n_vox_x_init in range(num_voxels_x):#iterating over number of voxels in x-direction
                     #print('n_vox_x_init: '+ str(n_vox_x_init))
+=======
+                for n_vox_x_init in range(num_voxels_x):#iterating over number of voxels in x-direction
+
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
                     if mode == 'Area+Intensity':
                         array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
                         array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
@@ -97,9 +139,12 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
 
 
                     elif mode == 'Area_only':
+<<<<<<< HEAD
                         print('n_vox_x_init: ' + str(n_vox_x_init))
                         print('n_vox_y_init: ' + str(n_vox_y_init))
 
+=======
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
                         array_area = fill_2D_voxel_area(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
                         #array_intensity = fill_2D_voxel_intensity(voxel_size, n_vox_x_init, n_vox_y_init, df,'Zeros')
 
@@ -132,9 +177,17 @@ def create_voxel_h5(path_buildjob_h5, path_voxel_h5, part_name, voxel_size, num_
                     print('creating voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
         # y-Achse entspricht horizontal, x-Achse entspricht vertikal
 
+<<<<<<< HEAD
     return()
+=======
+
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
 
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     create_voxel_h5('/home/jan/Documents/CodeTDMStoHDF/Ausgangsdaten/examplerRun.h5', '/home/jan/Documents/Voxel_Erstellung/voxels_test_big.hdf5', '0_00003_Canti3_cls', 200, 10, 'Area_only', 142)
+=======
+    create_voxel_h5('/home/jan/Documents/CodeTDMStoHDF/Ausgangsdaten/examplerRun.h5', '/home/jan/Documents/Voxel_Erstellung/voxels_test_big.hdf5', '0_00003_Canti3_cls', 200, 10, 'Area_only')
+>>>>>>> d1c7d5505b6478892656ed192077e5d2f820ea7d
