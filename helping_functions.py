@@ -500,20 +500,20 @@ def fill_2D_voxel_intensity (voxel_size, num_voxels_x, num_voxels_y, df, filling
 
     return array_intensity
 
-    '''
-    -------------------------------------------------------------------------------
-    fill_2D_voxel_area_v2:
-    Second version of fill_2D_voxel_area
+'''
+-------------------------------------------------------------------------------
+fill_2D_voxel_area_v2:
+Second version of fill_2D_voxel_area
 
-    inputs:
-    voxel_size = int of voxel x and y dimensions
-    num_voxels_x = int of current number of voxel in x-direction
-    num_voxels_y =                                   y
-    df = Dataframe of data of interest
-    filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
+inputs:
+voxel_size = int of voxel x and y dimensions
+num_voxels_x = int of current number of voxel in x-direction
+num_voxels_y =                                   y
+df = Dataframe of data of interest
+filling_method = 'Zeros' (area data of missing data points is set to zero), further methods to come
 
-    output: np array with area values for voxel
-    '''
+output: np array with area values for voxel
+'''
 
 def fill_2D_voxel_area_v2 (voxel_size, num_voxels_x, num_voxels_y, df):
     array_area = np.zeros([voxel_size,voxel_size]) #creating an empty array of dimensions voxel_size*voxel_size
@@ -530,3 +530,45 @@ def fill_2D_voxel_area_v2 (voxel_size, num_voxels_x, num_voxels_y, df):
 
 
     return array_area
+
+'''
+----------------------------------------------------------------------------
+create_voxel_df
+function that creates a dataframe filled with 0s for every voxel and adds
+all the values for area and intensity that are located inside the voxel
+
+inputs:
+current_n_vox_x: int of current voxel number in x-dimension
+current_n_vox_y: int of current voxel number in y-dimension
+voxel_size: int of voxel dimension
+df: docked and filtered dataframe with values for area and intensity for x,y
+
+
+output:
+df of each voxel with added values for area and intensity if they occur within
+the voxel
+'''
+
+def create_single_voxel_df (current_n_vox_x, current_n_vox_y, voxel_size, df):
+    x_min_voxel = current_n_vox_x * voxel_size
+    x_max_voxel = (current_n_vox_x + 1)*voxel_size
+    y_min_voxel = current_n_vox_y * voxel_size
+    y_max_voxel = (current_n_vox_y + 1)*voxel_size
+
+    x_axis_voxel_df =  np.repeat(np.arange(x_min_voxel,x_max_voxel,1),voxel_size)
+    y_axis_voxel_df =  np.tile(np.arange(y_min_voxel,y_max_voxel,1),voxel_size)
+    Zero_array = np.zeros(voxel_size*voxel_size, dtype=int)
+
+    help_arr = np.column_stack((x_axis_voxel_df, y_axis_voxel_df, Zero_array, Zero_array))
+    df_voxel = pd.DataFrame(help_arr, columns=['x','y','area','intensity'])
+
+
+    if df[(df['x'] > x_min_voxel ) & (df['x'] < x_max_voxel ) & (df['y'] > y_min_voxel) & (df['y'] < y_max_voxel)].shape[0] != 0:
+        df_voxel_added = df_voxel.append(df[(df['x'] > x_min_voxel ) & (df['x'] < x_max_voxel ) & (df['y'] > y_min_voxel) & (df['y'] < y_max_voxel)])
+        df_voxel_wo_dupl = df_voxel_added.drop_duplicates(['x','y'], keep = 'last')
+        df_voxel_final = df_voxel_wo_dupl.sort_values(by=['x','y'])
+
+    else:
+        df_voxel_final = df_voxel
+
+    return df_voxel_final
