@@ -74,12 +74,12 @@ def get_2D_data_from_h5_filtered(h5_path, part_name, Slice_name, mode):
 
 
     #Step 3: Get a df with all the rows where a certain x,y combination occurs multiple times
-    df_multi_xy = df_int[df_int.duplicated(['x','y'], keep = False)]
+    df_multi_xy = df_int[df_int.duplicated(['x','y'], keep = False)].reset_index()
 
     #Step 4: get a new df out of df_multi_xy with x,y and mean/max of area and intensity for all x,y occurences
     df_compact = pd.DataFrame(columns=['x','y','area','intensity']) #initialize df_compact
 
-    print("vor iterieren %s seconds ---" % (time.time() - start_time))
+    print("till iterating from {} {} seconds ---".format (Slice_name,time.time() - start_time))
     for ind in range (df_multi_xy.shape[0]):
         if mode == 'mean':
             area_mean = df_multi_xy.loc[(df_multi_xy['x']== df_multi_xy.iloc[ind]['x']) & (df_multi_xy['y'] == df_multi_xy.iloc[ind]['y'])]['area'].mean().astype(int)
@@ -95,7 +95,7 @@ def get_2D_data_from_h5_filtered(h5_path, part_name, Slice_name, mode):
     df_multi_xy_removed = df_int.drop(df_int[df_int.duplicated(['x','y'], keep = False)].index)
 
     df_final = df_multi_xy_removed.append(df_compact)
-    print("df creation took %s seconds ---" % (time.time() - start_time))
+    print("df creation for {} took {} seconds ---".format (Slice_name,time.time() - start_time))
     return (df_final)
 
 
@@ -572,3 +572,49 @@ def create_single_voxel_df (current_n_vox_x, current_n_vox_y, voxel_size, df):
         df_voxel_final = df_voxel
 
     return df_voxel_final
+
+
+'''
+-------------------------------------------------------------------------------
+fill_voxel_per_slice
+function that fills
+'''
+#for num_slice in range(num_voxel_layers*num_z, num_voxel_layers*(num_z+1)):
+#    print('num_slice: ' + str(num_slice))
+#    start_time = time.time()
+def fill_voxel_per_slice(num_slice):
+    num_voxels_x = 20
+    num_voxels_y = 20
+    voxel_size = 100
+    num_z = 1
+    path_buildjob_h5 = '/home/jan/Documents/CodeTDMStoHDF/Ausgangsdaten/examplerRun.h5'
+    part_name = '0_00003_Canti3_cls'
+    minX_part = minX
+    minY_part = minY
+
+    # getting the data of the part_hdf5
+    df_not_docked = get_2D_data_from_h5_filtered(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1)), 'mean') #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
+    df = dock_df_to_zero(df_not_docked, minX_part, minY_part) #docking the values of the dataframe to 0
+    for n_vox_y_init in range(num_voxels_y): #iterating over number of voxels in y-direction
+        for n_vox_x_init in range(num_voxels_x):#iterating over number of voxels in x-direction
+            #print('n_vox_x_init: '+ str(n_vox_x_init))
+            start_time = time.time()
+            #set the initial df to a dataframe with the real x and y values - append the dataframe with the values
+            #for the particular reach and remove duplicates based on x and y
+            df_voxel_final = create_voxel_df(n_vox_x_init, n_vox_y_init, voxel_size, df)
+
+            #print(df_voxel_final)
+            with h5py.File('/home/jan/Documents/Voxel_Erstellung/HDFs/voxel_new_filling_method_multiprocessing.hdf5', "a") as voxel_hdf:
+                #creating a voxel with the numbers of voxels in both direction in its name and filling it with data
+                #if group is already existing don't create a new group
+                if 'voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z) not in voxel_hdf:
+                    voxel_hdf.create_group('voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
+                voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)].create_group('slice_{}'.format(num_slice))
+                voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice)].create_dataset('X-Axis',data = np.repeat(np.arange(0,voxel_size,1),voxel_size))
+                voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice)].create_dataset('Y-Axis',data = np.tile(np.arange(0,voxel_size,1),voxel_size))
+                voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice)].create_dataset('Area', data = df_voxel_final['area'].values.astype(int))
+                voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice)].create_dataset('Intensity', data = df_voxel_final['intensity'].values.astype(int))
+
+            #print('filling voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z))
+    #print("voxel filling took %s seconds ---" % (time.time() - start_time))
+    return
