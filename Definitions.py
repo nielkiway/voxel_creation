@@ -42,6 +42,6 @@ length_y_part = abs(maxY-minY)
 num_voxels = get_number_voxel(length_x_part, length_y_part, max_slice_number_part, voxel_size, num_layers_per_voxel) #number_of_layers_part was changed to max_slice_number_part
 num_voxels_x = int(num_voxels[0])
 num_voxels_y = int(num_voxels[1])
-num_voxels_z = 3#int(num_voxels[2])
+num_voxels_z = 5#int(num_voxels[2])
 
 num_z_list = [i for i in range(num_voxels_z)]

@@ -8,8 +8,8 @@ The function is used to create voxels
 import h5py
 import numpy as np
 import time
-from Definitions import  minX, minY, num_voxels_x, num_voxels_y, path_buildjob_h5, num_layers_per_voxel, part_name, mode_df, voxel_size, num_z_list, path_voxel_h5_folder #path_voxel_h5,
-from helping_functions import get_2D_data_from_h5_filtered, dock_df_to_zero, create_single_voxel_df
+from Definitions import  minX, minY, num_voxels_x, num_voxels_y, path_buildjob_h5, num_layers_per_voxel, part_name,  voxel_size, num_z_list, path_voxel_h5_folder #path_voxel_h5,
+from helping_functions import get_2D_data_from_h5_filtered_np, dock_df_to_zero, create_single_voxel_df
 import concurrent.futures
 import multiprocessing
 import os
@@ -22,7 +22,7 @@ def create_single_vox_layer (num_z):
         print('num_slice: ' + str(num_slice))
         #start_time = time.time()
         # getting the data of the part_hdf5
-        df_not_docked = get_2D_data_from_h5_filtered(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1)), mode_df) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
+        df_not_docked = get_2D_data_from_h5_filtered_np(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
         df = dock_df_to_zero(df_not_docked, minX, minY) #docking the values of the dataframe to 0
 
         for n_vox_y_init in range(num_voxels_y): #iterating over number of voxels in y-direction
@@ -56,25 +56,25 @@ if __name__ == '__main__':
     #voxel_hdf = h5py.File(path_voxel_h5, "w")
     #voxel_hdf.close()
     #2. Multiprocessed filling up of voxel layers
-    #with concurrent.futures.ProcessPoolExecutor() as executor:
-    #    executor.map(create_single_vox_layer, num_z_list)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        executor.map(create_single_vox_layer, num_z_list)
 
-    p1 = multiprocessing.Process(target=create_single_vox_layer, args=(0, ))
-    p2 = multiprocessing.Process(target=create_single_vox_layer, args=(1, ))
-    p3 = multiprocessing.Process(target=create_single_vox_layer, args=(2, ))
-    p4 = multiprocessing.Process(target=create_single_vox_layer, args=(3, ))
+#    p1 = multiprocessing.Process(target=create_single_vox_layer, args=(0, ))
+#    p2 = multiprocessing.Process(target=create_single_vox_layer, args=(1, ))
+#    p3 = multiprocessing.Process(target=create_single_vox_layer, args=(2, ))
+#    p4 = multiprocessing.Process(target=create_single_vox_layer, args=(3, ))
      # starting process 1
-    p1.start()
+#    p1.start()
     # starting process 2
-    p2.start()
-    p3.start()
-    p4.start()
-
-    p1.join()
-    # wait until process 2 is finished
-    p2.join()
-    p3.join()
-    p4.join()
+#    p2.start()
+#    p3.start()
+#    p4.start()
+#    create_single_vox_layer (1)
+#    p1.join()
+#    # wait until process 2 is finished
+#    p2.join()
+#    p3.join()
+#    p4.join()
 
     # both processes finished
     print("Done!")
