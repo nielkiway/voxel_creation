@@ -9,7 +9,7 @@ import h5py
 import numpy as np
 import time
 from Definitions import  minX, minY, num_voxels_x, num_voxels_y, path_buildjob_h5, num_layers_per_voxel, part_name,  voxel_size, num_z_list, path_voxel_h5_folder #path_voxel_h5,
-from helping_functions import get_2D_data_from_h5_filtered_np, dock_df_to_zero, create_single_voxel_df
+from helping_functions import get_2D_data_from_h5_filtered_np, dock_array_to_zero, create_single_voxel_array
 import concurrent.futures
 import multiprocessing
 import os
@@ -22,14 +22,14 @@ def create_single_vox_layer (num_z):
         print('num_slice: ' + str(num_slice))
         #start_time = time.time()
         # getting the data of the part_hdf5
-        df_not_docked = get_2D_data_from_h5_filtered_np(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
-        df = dock_df_to_zero(df_not_docked, minX, minY) #docking the values of the dataframe to 0
+        array_not_docked = get_2D_data_from_h5_filtered_np(path_buildjob_h5, part_name, 'Slice' + str("{:05d}".format(num_slice+1))) #"{:05d}" -> 1 becomes 00001 for accessibility in h5 file
+        array = dock_array_to_zero(array_not_docked, minX, minY) #docking the values of the dataframe to 0
 
         for n_vox_y_init in range(num_voxels_y): #iterating over number of voxels in y-direction
             #print('n_vox_y_init: ' + str(n_vox_y_init))
             for n_vox_x_init in range(num_voxels_x):#iterating over number of voxels in x-direction
                 #print('n_vox_x_init: '+ str(n_vox_x_init))
-                df_voxel_final = create_single_voxel_df(n_vox_x_init, n_vox_y_init, voxel_size, df)
+                array_voxel_final = create_single_voxel_array(n_vox_x_init, n_vox_y_init, voxel_size, array)
 
 
                 #check if File is already existing -> path still needs to be defined
@@ -43,10 +43,10 @@ def create_single_vox_layer (num_z):
                     if 'voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init, num_z) not in voxel_hdf:
                         voxel_hdf.create_group('voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z))
                     voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)].create_group('slice_{}'.format(num_slice-num_z*num_layers_per_voxel)) #-num_z*num_slices_vox wegen
-                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('X-Axis',data = np.repeat(np.arange(0,voxel_size,1),voxel_size))
-                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Y-Axis',data = np.tile(np.arange(0,voxel_size,1),voxel_size))
-                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Area', data = df_voxel_final['area'].values.astype(int))
-                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Intensity', data = df_voxel_final['intensity'].values.astype(int))
+                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('X-Axis',data = array_voxel_final[:,0])
+                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Y-Axis',data = array_voxel_final[:,1])
+                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Area', data = array_voxel_final[:,2])
+                    voxel_hdf['voxel_{}_{}_{}'.format(n_vox_x_init,n_vox_y_init,num_z)]['slice_{}'.format(num_slice-num_z*num_layers_per_voxel)].create_dataset('Intensity', data = array_voxel_final[:,3])
         print('filling slice {} took {} s'.format(num_slice, time.time() - start_time_2))
     print("layer filling took %s seconds ---" % (time.time() - start_time_1))
 

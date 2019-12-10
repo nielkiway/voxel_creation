@@ -718,6 +718,54 @@ def get_2D_data_from_h5_filtered_np(h5_path, part_name, Slice_name):
 
         indices_relevant = np.hstack(indices_list)
         combos_wo_only_zeros_copy = np.delete(combos_wo_only_zeros_copy, indices_relevant, axis = 0)
-        df = pd.DataFrame(combos_wo_only_zeros_copy, columns=['x','y','area','intensity'])
-        print("df creation took %s seconds ---" % (time.time() - start_time))
-        return(df)
+        #df = pd.DataFrame(combos_wo_only_zeros_copy, columns=['x','y','area','intensity'])
+        print("array creation took %s seconds ---" % (time.time() - start_time))
+        return(combos_wo_only_zeros_copy)
+
+'''
+-------------------------------------------------------------------------------
+
+'''
+def dock_array_to_zero(array, minX, minY):
+    if minX >= 0 and minY >=0:
+        array[:,0] = array[:,0] - minX
+        array[:,1] = array[:,1] - minY
+    elif minX < 0 and minY <0:
+        array[:,0] = array[:,0] + abs(minX)
+        array[:,1] = array[:,1] + abs(minY)
+    elif minX >= 0 and minY <0:
+        array[:,0] = array[:,0] - minX
+        array[:,1] = array[:,1] + abs(minY)
+    elif minX < 0 and min >= 0:
+        array[:,0] = array[:,0] + abs(minX)
+        array[:,1] = array[:,1] - minY
+    return array
+
+'''
+-------------------------------------------------------------------------------
+'''
+def create_single_voxel_array (current_n_vox_x, current_n_vox_y, voxel_size, array):
+    x_min_voxel = current_n_vox_x * voxel_size
+    x_max_voxel = (current_n_vox_x + 1)*voxel_size
+    y_min_voxel = current_n_vox_y * voxel_size
+    y_max_voxel = (current_n_vox_y + 1)*voxel_size
+
+    x_axis_voxel =  np.repeat(np.arange(x_min_voxel,x_max_voxel,1),voxel_size)
+    y_axis_voxel =  np.tile(np.arange(y_min_voxel,y_max_voxel,1),voxel_size)
+    Zero_array = np.zeros(voxel_size*voxel_size, dtype=int)
+
+    voxel_array = np.stack((x_axis_voxel, y_axis_voxel, Zero_array, Zero_array), axis=-1)
+
+    #check if datapoints in array are in the region of the voxel
+    indices_relevant = np.where((array[:,0] >= x_min_voxel)*(array[:,0] < x_max_voxel)*(array[:,1] >= y_min_voxel)*(array[:,1] < y_max_voxel))[0]
+
+    if indices_relevant.size != 0:
+        relevant_array = array[indices_relevant]
+        stacked_array = np.vstack((relevant_array, voxel_array))
+        stacked_unique_xy, unique_indices = np.unique(stacked_array[:,[0,1]],axis=0, return_index = True)
+        final_voxel_array = stacked_array[unique_indices]
+
+    else:
+        final_voxel_array = voxel_array
+
+    return final_voxel_array
