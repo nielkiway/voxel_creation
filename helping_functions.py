@@ -628,96 +628,101 @@ def get_2D_data_from_h5_filtered_np(h5_path, part_name, Slice_name):
     start_time = time.time()
 
     with h5py.File(h5_path,'r') as h5:
+        #check whether slice exists -> if not: empty array returned
+        if Slice_name in h5[part_name]:
+            Y_Axis = np.array(h5[part_name][Slice_name]['Y-Axis'][:]).astype(int)
+            Area = np.array(h5[part_name][Slice_name]['Area'][:]).astype(int)
+            Intensity = np.array(h5[part_name][Slice_name]['Intensity'][:]).astype(int)
+            X_Axis = np.array(h5[part_name][Slice_name]['X-Axis'][:]).astype(int)
 
-        Y_Axis = np.array(h5[part_name][Slice_name]['Y-Axis'][:]).astype(int)
-        Area = np.array(h5[part_name][Slice_name]['Area'][:]).astype(int)
-        Intensity = np.array(h5[part_name][Slice_name]['Intensity'][:]).astype(int)
-        X_Axis = np.array(h5[part_name][Slice_name]['X-Axis'][:]).astype(int)
+            X_Axis_size = X_Axis.size
+            Y_Axis_size = Y_Axis.size
+            Area_size = Area.size
+            Intensity_size = Intensity.size
 
-        X_Axis_size = X_Axis.size
-        Y_Axis_size = Y_Axis.size
-        Area_size = Area.size
-        Intensity_size = Intensity.size
+            #if dimensions aren't equal the following code block is entered
+            if not X_Axis_size == Y_Axis_size == Area_size == Intensity_size:
 
-        #if dimensions aren't equal the following code block is entered
-        if not X_Axis_size == Y_Axis_size == Area_size == Intensity_size:
+                #determine the lowest value among the different sizes
+                size_arr = np.array([X_Axis_size, Y_Axis_size, Area_size, Intensity_size])
+                min_size = size_arr.min()
 
-            #determine the lowest value among the different sizes
-            size_arr = np.array([X_Axis_size, Y_Axis_size, Area_size, Intensity_size])
-            min_size = size_arr.min()
+                if X_Axis_size != min_size:
+                    diff_size_x = X_Axis_size - min_size #calculating the difference between the actual value and the minimum and substracting it from the array
+                    X_Axis_new = np.delete(X_Axis, -diff_size_x)
+                    X_Axis = X_Axis_new
+                    X_Axis_size = X_Axis.size
 
-            if X_Axis_size != min_size:
-                diff_size_x = X_Axis_size - min_size #calculating the difference between the actual value and the minimum and substracting it from the array
-                X_Axis_new = np.delete(X_Axis, -diff_size_x)
-                X_Axis = X_Axis_new
-                X_Axis_size = X_Axis.size
+                if Y_Axis_size != min_size:
+                    diff_size_y = Y_Axis_size - min_size
+                    Y_Axis_new = np.delete(Y_Axis, -diff_size_y)
+                    Y_Axis = Y_Axis_new
+                    Y_Axis_size = Y_Axis.size
 
-            if Y_Axis_size != min_size:
-                diff_size_y = Y_Axis_size - min_size
-                Y_Axis_new = np.delete(Y_Axis, -diff_size_y)
-                Y_Axis = Y_Axis_new
-                Y_Axis_size = Y_Axis.size
+                if Area_size != min_size:
+                    diff_size_area = Area_size - min_size
+                    Area_new = np.delete(Area, -diff_size_area)
+                    Area = Area_new
+                    Area_size = Area.size
 
-            if Area_size != min_size:
-                diff_size_area = Area_size - min_size
-                Area_new = np.delete(Area, -diff_size_area)
-                Area = Area_new
-                Area_size = Area.size
+                if Intensity_size != min_size:
+                    diff_size_intensity = Intensity_size - min_size
+                    Intensity_new = np.delete(Intensity, -diff_size_intensity)
+                    Intensity = Intensity_new
+                    Intensity_size = Intensity.size
 
-            if Intensity_size != min_size:
-                diff_size_intensity = Intensity_size - min_size
-                Intensity_new = np.delete(Intensity, -diff_size_intensity)
-                Intensity = Intensity_new
-                Intensity_size = Intensity.size
+                #by reducing all the dimensions to the minimum equal dimensions are guaranteed
+                #there is a risk of deleting more than just one datapoint without noticing -> maybe add an alert after more than 5(?) while iterations
+            print(str(X_Axis_size)+ ' datapoints found')
+            combos = np.stack((X_Axis, Y_Axis, Area, Intensity), axis=-1)
 
-            #by reducing all the dimensions to the minimum equal dimensions are guaranteed
-            #there is a risk of deleting more than just one datapoint without noticing -> maybe add an alert after more than 5(?) while iterations
-        print(str(X_Axis_size)+ ' datapoints found')
-        combos = np.stack((X_Axis, Y_Axis, Area, Intensity), axis=-1)
+            #filtering out the datapoints where area and intensity are =0
+            area_zeros = np.where(combos[:,2]== 0)
+            intensity_zeros = np.where(combos[:,3]==0)
+            zero_area_intensity_indices = np.intersect1d(area_zeros, intensity_zeros) #array of indices where area AND intensity are = 0
 
-        #filtering out the datapoints where area and intensity are =0
-        area_zeros = np.where(combos[:,2]== 0)
-        intensity_zeros = np.where(combos[:,3]==0)
-        zero_area_intensity_indices = np.intersect1d(area_zeros, intensity_zeros) #array of indices where area AND intensity are = 0
+            #deleting all the datapoints where area AND intensity are = 0
+            combos_wo_only_zeros = np.delete(combos, zero_area_intensity_indices, axis=0)
+            print(str(combos_wo_only_zeros.shape[0]) + ' datapoints where area != 0 AND intensity != 0')
 
-        #deleting all the datapoints where area AND intensity are = 0
-        combos_wo_only_zeros = np.delete(combos, zero_area_intensity_indices, axis=0)
-        print(str(combos_wo_only_zeros.shape[0]) + ' datapoints where area != 0 AND intensity != 0')
+            combos_wo_only_zeros_unique, unique_indices = np.unique(combos_wo_only_zeros[:,[0,1]],axis=0, return_index = True)
+            combos_unique = combos_wo_only_zeros[unique_indices]
+            print(str(combos_unique.shape[0]) + ' unique datapoints where area != 0 AND intensity != 0')
 
-        combos_wo_only_zeros_unique, unique_indices = np.unique(combos_wo_only_zeros[:,[0,1]],axis=0, return_index = True)
-        combos_unique = combos_wo_only_zeros[unique_indices]
-        print(str(combos_unique.shape[0]) + ' unique datapoints where area != 0 AND intensity != 0')
+            Index_range = np.arange(combos_wo_only_zeros.shape[0])
+            indices_of_interest = np.setdiff1d(Index_range, unique_indices) #all the indices belonging to non unique x,y-combinations
 
-        Index_range = np.arange(combos_wo_only_zeros.shape[0])
-        indices_of_interest = np.setdiff1d(Index_range, unique_indices) #all the indices belonging to non unique x,y-combinations
+            combo_processed_array = np.empty([0,4],dtype= int)
+            start_time = time.time()
+            combos_wo_only_zeros_copy = np.copy(combos_wo_only_zeros)
+            index_counter = 0
+            shape_counter = 0
+            indices_list = []
 
-        combo_processed_array = np.empty([0,4],dtype= int)
-        start_time = time.time()
-        combos_wo_only_zeros_copy = np.copy(combos_wo_only_zeros)
-        index_counter = 0
-        shape_counter = 0
-        indices_list = []
-
-        print("vor iterieren %s seconds ---" % (time.time() - start_time))
-        for index in indices_of_interest:
-            xy_combo = combos_wo_only_zeros[:,[0,1]][index]
-            if np.where((combo_processed_array[:,0] == xy_combo[0])*(combo_processed_array[:,1] == xy_combo[1]))[0].size == 0:
-                index_counter += 1
+            print("vor iterieren %s seconds ---" % (time.time() - start_time))
+            for index in indices_of_interest:
                 xy_combo = combos_wo_only_zeros[:,[0,1]][index]
-                indices_relevant = np.where((combos_wo_only_zeros[:,0] == xy_combo[0])*(combos_wo_only_zeros[:,1] == xy_combo[1]))[0]
-                max_area_of_combo = np.amax(combos_wo_only_zeros[:,2][indices_relevant])
-                max_intensity_of_combo = np.amax(combos_wo_only_zeros[:,3][indices_relevant])
+                if np.where((combo_processed_array[:,0] == xy_combo[0])*(combo_processed_array[:,1] == xy_combo[1]))[0].size == 0:
+                    index_counter += 1
+                    xy_combo = combos_wo_only_zeros[:,[0,1]][index]
+                    indices_relevant = np.where((combos_wo_only_zeros[:,0] == xy_combo[0])*(combos_wo_only_zeros[:,1] == xy_combo[1]))[0]
+                    max_area_of_combo = np.amax(combos_wo_only_zeros[:,2][indices_relevant])
+                    max_intensity_of_combo = np.amax(combos_wo_only_zeros[:,3][indices_relevant])
 
-                max_combos = np.stack((xy_combo[0], xy_combo[1], max_area_of_combo, max_intensity_of_combo), axis=-1)
+                    max_combos = np.stack((xy_combo[0], xy_combo[1], max_area_of_combo, max_intensity_of_combo), axis=-1)
 
-                combos_wo_only_zeros_copy = np.vstack((combos_wo_only_zeros_copy, max_combos))
-                shape_counter += indices_relevant.shape[0]
-                indices_list.append(list(indices_relevant))
+                    combos_wo_only_zeros_copy = np.vstack((combos_wo_only_zeros_copy, max_combos))
+                    shape_counter += indices_relevant.shape[0]
+                    indices_list.append(list(indices_relevant))
 
-                combo_processed_array =  np.vstack((combo_processed_array, max_combos))
+                    combo_processed_array =  np.vstack((combo_processed_array, max_combos))
 
-        indices_relevant = np.hstack(indices_list)
-        combos_wo_only_zeros_copy = np.delete(combos_wo_only_zeros_copy, indices_relevant, axis = 0)
+            indices_relevant = np.hstack(indices_list)
+            combos_wo_only_zeros_copy = np.delete(combos_wo_only_zeros_copy, indices_relevant, axis = 0)
+        else:
+            combos_wo_only_zeros_copy = np.empty([0,4],dtype= int)
+            print('{} is not existing -> empty array created'.format(Slice_name))
+
         #df = pd.DataFrame(combos_wo_only_zeros_copy, columns=['x','y','area','intensity'])
         print("array creation took %s seconds ---" % (time.time() - start_time))
         return(combos_wo_only_zeros_copy)

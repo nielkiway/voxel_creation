@@ -20,7 +20,7 @@ path_voxel_h5_folder = '/home/jan/Documents/Voxel_Erstellung/HDFs/0_00003_Canti3
 part_name = '0_00003_Canti3_cls'
 mode_df = 'mean' #way how to deal with data points which occur multiple times
 voxel_size = 100
-num_layers_per_voxel = 20
+num_layers_per_voxel = 2
 max_slice_number_part = 142 # doesn't need to be manually added
 #a funtion needs to be built in which checks whether a Slice data is there or not (for topmost voxel)
 '''
@@ -42,6 +42,6 @@ length_y_part = abs(maxY-minY)
 num_voxels = get_number_voxel(length_x_part, length_y_part, max_slice_number_part, voxel_size, num_layers_per_voxel) #number_of_layers_part was changed to max_slice_number_part
 num_voxels_x = int(num_voxels[0])
 num_voxels_y = int(num_voxels[1])
-num_voxels_z = 5#int(num_voxels[2])
+num_voxels_z = 8#int(num_voxels[2])
 
 num_z_list = [i for i in range(num_voxels_z)]
