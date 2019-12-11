@@ -774,3 +774,33 @@ def create_single_voxel_array (current_n_vox_x, current_n_vox_y, voxel_size, arr
         final_voxel_array = voxel_array
 
     return final_voxel_array
+
+'''
+--------------------------------------------------------------------------------
+storage saving version where all the points with 0s are not stored
+'''
+def create_single_voxel_array_storage_reduced (current_n_vox_x, current_n_vox_y, voxel_size, array):
+    x_min_voxel = current_n_vox_x * voxel_size
+    x_max_voxel = (current_n_vox_x + 1)*voxel_size
+    y_min_voxel = current_n_vox_y * voxel_size
+    y_max_voxel = (current_n_vox_y + 1)*voxel_size
+
+    x_axis_voxel =  np.repeat(np.arange(x_min_voxel,x_max_voxel,1),voxel_size)
+    y_axis_voxel =  np.tile(np.arange(y_min_voxel,y_max_voxel,1),voxel_size)
+    Zero_array = np.zeros(voxel_size*voxel_size, dtype=int)
+
+    voxel_array = np.empty([0,4],dtype= int)
+
+    #check if datapoints in array are in the region of the voxel
+    indices_relevant = np.where((array[:,0] >= x_min_voxel)*(array[:,0] < x_max_voxel)*(array[:,1] >= y_min_voxel)*(array[:,1] < y_max_voxel))[0]
+
+    if indices_relevant.size != 0:
+        relevant_array = array[indices_relevant]
+        relevant_array[:,0] = relevant_array[:,0] - x_min_voxel
+        relevant_array[:,1] = relevant_array[:,1] - y_min_voxel
+
+        final_voxel_array = relevant_array
+    else:
+        final_voxel_array = voxel_array
+
+    return final_voxel_array
