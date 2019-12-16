@@ -741,7 +741,7 @@ def dock_array_to_zero(array, minX, minY):
     elif minX >= 0 and minY <0:
         array[:,0] = array[:,0] - minX
         array[:,1] = array[:,1] + abs(minY)
-    elif minX < 0 and min >= 0:
+    elif minX < 0 and minY >= 0:
         array[:,0] = array[:,0] + abs(minX)
         array[:,1] = array[:,1] - minY
     return array
