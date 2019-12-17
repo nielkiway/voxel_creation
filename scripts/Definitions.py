@@ -14,10 +14,10 @@ from helping_functions import get_true_min_maxY
 from helping_functions import get_number_voxel
 
 
-path_buildjob_h5 = '/home/jan/Documents/Trainingsdaten/HDF5_full_part.h5'
-path_voxel_h5_folder = '/home/jan/Documents/Trainingsdaten/Voxel'
+path_buildjob_h5 = '/home/jan/Documents/Trainingsdaten/ZP_4/ZP_4_full_part.h5'
+path_voxel_h5_folder = '/home/jan/Documents/Trainingsdaten/ZP_4/ZP_4_voxel_100_10'
 #name_voxel_h5_file = 'asdasd_2.hdf5'
-part_name = 'ZP1_combined'
+part_name = 'ZP4_combined'
 #mode_df = 'mean' #way how to deal with data points which occur multiple times
 voxel_size = 100
 num_layers_per_voxel = 10
